@@ -1,0 +1,86 @@
+name: Send Email Campaign
+
+on:
+  workflow_dispatch:
+    inputs:
+      campaign_group:
+        description: "Campaign group (a or b)"
+        required: true
+        default: "a"
+        type: choice
+        options:
+          - a
+          - b
+      daily_limit:
+        description: "Emails per sender (default 50)"
+        required: false
+        default: "50"
+      campaign_id:
+        description: "Campaign ID tag for tracking"
+        required: false
+        default: "run-1"
+      recipients_csv:
+        description: "Paste CSV content (headers: email,first_name,company)"
+        required: true
+        type: string
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Write recipients CSV
+        run: |
+          FILE="recipients_${{ inputs.campaign_group }}.csv"
+          cat << 'CSVEOF' > "$FILE"
+          ${{ inputs.recipients_csv }}
+          CSVEOF
+          echo "CSV_FILE=$FILE" >> $GITHUB_ENV
+
+      - name: Send campaign
+        env:
+          CAMPAIGN_ID: ${{ inputs.campaign_id }}
+          DAILY_LIMIT: ${{ inputs.daily_limit }}
+          # Sender 1
+          SENDER_1_NAME: ${{ secrets.SENDER_1_NAME }}
+          SENDER_1_EMAIL: ${{ secrets.SENDER_1_EMAIL }}
+          SENDER_1_HOST: ${{ secrets.SENDER_1_HOST }}
+          SENDER_1_PORT: ${{ secrets.SENDER_1_PORT }}
+          SENDER_1_USER: ${{ secrets.SENDER_1_USER }}
+          SENDER_1_PASS: ${{ secrets.SENDER_1_PASS }}
+          # Sender 2
+          SENDER_2_NAME: ${{ secrets.SENDER_2_NAME }}
+          SENDER_2_EMAIL: ${{ secrets.SENDER_2_EMAIL }}
+          SENDER_2_HOST: ${{ secrets.SENDER_2_HOST }}
+          SENDER_2_PORT: ${{ secrets.SENDER_2_PORT }}
+          SENDER_2_USER: ${{ secrets.SENDER_2_USER }}
+          SENDER_2_PASS: ${{ secrets.SENDER_2_PASS }}
+          # Sender 3
+          SENDER_3_NAME: ${{ secrets.SENDER_3_NAME }}
+          SENDER_3_EMAIL: ${{ secrets.SENDER_3_EMAIL }}
+          SENDER_3_HOST: ${{ secrets.SENDER_3_HOST }}
+          SENDER_3_PORT: ${{ secrets.SENDER_3_PORT }}
+          SENDER_3_USER: ${{ secrets.SENDER_3_USER }}
+          SENDER_3_PASS: ${{ secrets.SENDER_3_PASS }}
+          # Sender 4
+          SENDER_4_NAME: ${{ secrets.SENDER_4_NAME }}
+          SENDER_4_EMAIL: ${{ secrets.SENDER_4_EMAIL }}
+          SENDER_4_HOST: ${{ secrets.SENDER_4_HOST }}
+          SENDER_4_PORT: ${{ secrets.SENDER_4_PORT }}
+          SENDER_4_USER: ${{ secrets.SENDER_4_USER }}
+          SENDER_4_PASS: ${{ secrets.SENDER_4_PASS }}
+          # Supabase (for logging)
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npx tsx scripts/send-campaign.ts "${{ env.CSV_FILE }}"
