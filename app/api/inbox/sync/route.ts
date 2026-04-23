@@ -16,6 +16,44 @@ function getSupabase() {
   );
 }
 
+function extractBody(raw: string): string {
+  // Split headers from body on first blank line
+  const headerBodySplit = raw.indexOf("\r\n\r\n");
+  if (headerBodySplit === -1) return raw;
+  const headers = raw.slice(0, headerBodySplit);
+  const fullBody = raw.slice(headerBodySplit + 4);
+
+  // Detect multipart boundary
+  const boundaryMatch = headers.match(/Content-Type:[^\r\n]*boundary="?([^";\r\n]+)"?/i);
+  if (boundaryMatch) {
+    const boundary = boundaryMatch[1].trim();
+    const parts = fullBody.split(new RegExp(`--${boundary.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:--)?`));
+
+    // Prefer text/plain part
+    for (const part of parts) {
+      const partHeaderEnd = part.indexOf("\r\n\r\n");
+      if (partHeaderEnd === -1) continue;
+      const partHeaders = part.slice(0, partHeaderEnd);
+      const partBody = part.slice(partHeaderEnd + 4).trim();
+      if (/Content-Type:\s*text\/plain/i.test(partHeaders) && partBody) {
+        return partBody;
+      }
+    }
+    // Fall back to text/html part
+    for (const part of parts) {
+      const partHeaderEnd = part.indexOf("\r\n\r\n");
+      if (partHeaderEnd === -1) continue;
+      const partHeaders = part.slice(0, partHeaderEnd);
+      const partBody = part.slice(partHeaderEnd + 4).trim();
+      if (/Content-Type:\s*text\/html/i.test(partHeaders) && partBody) {
+        return partBody;
+      }
+    }
+  }
+
+  return fullBody.trim();
+}
+
 async function syncAccount(sender: typeof SENDERS[0]) {
   const client = new ImapFlow({
     host: "imap.gmail.com",
@@ -50,7 +88,6 @@ async function syncAccount(sender: typeof SENDERS[0]) {
         const email = from.address?.toLowerCase();
         const name = (from as unknown as Record<string, string>).name || (from as unknown as Record<string, string>).personalName || email;
         const subject = msg.envelope.subject || "(no subject)";
-        const inReplyTo = msg.envelope.inReplyTo;
 
         if (!email) continue;
 
@@ -71,10 +108,9 @@ async function syncAccount(sender: typeof SENDERS[0]) {
 
         if (exists) continue;
 
-        // Get email body
-        const source = msg.source?.toString() || "";
-        const bodyMatch = source.match(/\r\n\r\n([\s\S]*)/);
-        const body = bodyMatch ? bodyMatch[1].trim() : source;
+        // Get email body — prefer text/plain, fall back to raw source after headers
+        const source = msg.source?.toString("utf-8") || "";
+        const body = extractBody(source);
 
         await sb.from("email_replies").insert({
           recipient_email: email,
@@ -82,7 +118,9 @@ async function syncAccount(sender: typeof SENDERS[0]) {
           sender_id: sender.id,
           original_message_id: messageId,
           reply_subject: subject,
-          reply_body: `<pre style="font-family:sans-serif;white-space:pre-wrap">${body}</pre>`,
+          reply_body: body.trimStart().startsWith("<")
+            ? body
+            : `<pre style="font-family:sans-serif;white-space:pre-wrap">${body}</pre>`,
           received_at: msg.envelope.date?.toISOString() || new Date().toISOString(),
           status: "unread",
         });

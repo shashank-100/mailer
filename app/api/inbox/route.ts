@@ -15,12 +15,12 @@ export async function GET(request: NextRequest) {
   const status = searchParams.get("status") || "unread";
   const sb = getSupabase();
 
-  const query = sb
+  let query = sb
     .from("email_replies")
     .select("*")
     .order("received_at", { ascending: false });
 
-  if (status !== "all") query.eq("status", status);
+  if (status !== "all") query = query.eq("status", status);
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

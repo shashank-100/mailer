@@ -35,16 +35,25 @@ export default function InboxPage() {
 
   const fetchReplies = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`/api/inbox?status=${filter}`);
-    setReplies(await res.json());
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/inbox?status=${filter}`);
+      const data = await res.json();
+      setReplies(Array.isArray(data) ? data : []);
+    } catch {
+      setReplies([]);
+    } finally {
+      setLoading(false);
+    }
   }, [filter]);
 
   const syncInbox = useCallback(async () => {
     setSyncing(true);
-    await fetch("/api/inbox/sync");
-    await fetchReplies();
-    setSyncing(false);
+    try {
+      await fetch("/api/inbox/sync");
+      await fetchReplies();
+    } finally {
+      setSyncing(false);
+    }
   }, [fetchReplies]);
 
   // Sync on load, then every 5 minutes
