@@ -82,12 +82,12 @@ async function syncAccount(sender: typeof SENDERS[0]) {
       const sb = getSupabase();
 
       for await (const msg of messages) {
-        const from = msg.envelope.from?.[0];
+        const from = msg.envelope?.from?.[0];
         if (!from) continue;
 
         const email = from.address?.toLowerCase();
         const name = (from as unknown as Record<string, string>).name || (from as unknown as Record<string, string>).personalName || email;
-        const subject = msg.envelope.subject || "(no subject)";
+        const subject = msg.envelope?.subject || "(no subject)";
 
         if (!email) continue;
 
@@ -100,7 +100,7 @@ async function syncAccount(sender: typeof SENDERS[0]) {
         if (!count) continue;
 
         // Check if already stored (by message-id to avoid duplicates)
-        const messageId = msg.envelope.messageId || `${email}-${subject}`;
+        const messageId = msg.envelope?.messageId || `${email}-${subject}`;
         const { count: exists } = await sb
           .from("email_replies")
           .select("*", { count: "exact", head: true })
@@ -121,7 +121,7 @@ async function syncAccount(sender: typeof SENDERS[0]) {
           reply_body: body.trimStart().startsWith("<")
             ? body
             : `<pre style="font-family:sans-serif;white-space:pre-wrap">${body}</pre>`,
-          received_at: msg.envelope.date?.toISOString() || new Date().toISOString(),
+          received_at: msg.envelope?.date?.toISOString() || new Date().toISOString(),
           status: "unread",
         });
 
