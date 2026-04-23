@@ -12,7 +12,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",
     "imapflow": "^1.0.170",
-    "next": "15.2.4",
+    "next": "^15.5.15",
     "nodemailer": "^8.0.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
