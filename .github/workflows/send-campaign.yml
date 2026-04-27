@@ -3,31 +3,22 @@ name: Send Email Campaign
 on:
   workflow_dispatch:
     inputs:
-      campaign_group:
-        description: "Campaign group (a or b)"
+      campaign_id:
+        description: "Campaign ID from Supabase"
         required: true
-        default: "a"
-        type: choice
-        options:
-          - a
-          - b
       daily_limit:
-        description: "Emails per sender (default 50)"
+        description: "Emails per sender per run (default 50)"
         required: false
         default: "50"
-      campaign_id:
-        description: "Campaign ID tag for tracking"
+      delay_ms:
+        description: "Delay between emails in ms (default 3000)"
         required: false
-        default: "run-1"
-      recipients_csv:
-        description: "Paste CSV content (headers: email,first_name,company)"
-        required: true
-        type: string
+        default: "3000"
 
 jobs:
   send:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
 
     steps:
       - uses: actions/checkout@v4
@@ -40,18 +31,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Write recipients CSV
-        run: |
-          FILE="recipients_${{ inputs.campaign_group }}.csv"
-          cat << 'CSVEOF' > "$FILE"
-          ${{ inputs.recipients_csv }}
-          CSVEOF
-          echo "CSV_FILE=$FILE" >> $GITHUB_ENV
-
       - name: Send campaign
         env:
           CAMPAIGN_ID: ${{ inputs.campaign_id }}
           DAILY_LIMIT: ${{ inputs.daily_limit }}
+          DELAY_MS: ${{ inputs.delay_ms }}
+          # Supabase
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # Sender 1
           SENDER_1_NAME: ${{ secrets.SENDER_1_NAME }}
           SENDER_1_EMAIL: ${{ secrets.SENDER_1_EMAIL }}
@@ -80,7 +67,4 @@ jobs:
           SENDER_4_PORT: ${{ secrets.SENDER_4_PORT }}
           SENDER_4_USER: ${{ secrets.SENDER_4_USER }}
           SENDER_4_PASS: ${{ secrets.SENDER_4_PASS }}
-          # Supabase (for logging)
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        run: npx tsx scripts/send-campaign.ts "${{ env.CSV_FILE }}"
+        run: npx tsx scripts/run-campaign-from-db.ts
