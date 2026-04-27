@@ -14,7 +14,7 @@ on:
       daily_limit:
         description: "Emails per sender per run"
         required: false
-        default: "50"
+        default: "13"
       delay_ms:
         description: "Delay between emails in ms"
         required: false
@@ -39,7 +39,7 @@ jobs:
       - name: Send campaign
         env:
           CAMPAIGN_ID: ${{ inputs.campaign_id || secrets.CAMPAIGN_ID }}
-          DAILY_LIMIT: ${{ inputs.daily_limit || '50' }}
+          DAILY_LIMIT: ${{ inputs.daily_limit || '13' }}
           DELAY_MS: ${{ inputs.delay_ms || '3000' }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
