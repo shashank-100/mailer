@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p $PORT",
     "send": "npx tsx scripts/send-campaign.ts",
     "test-email": "npx tsx scripts/test-email.ts"
   },
